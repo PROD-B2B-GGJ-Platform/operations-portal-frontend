@@ -1,0 +1,14 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: operations-portal-frontend
+  namespace: frontend-cluster
+spec:
+  type: ClusterIP
+  selector:
+    app: operations-portal-frontend
+  ports:
+  - port: 3028
+    targetPort: 3028
+    protocol: TCP
+    name: http
