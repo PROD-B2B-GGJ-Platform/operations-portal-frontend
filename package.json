@@ -1,15 +1,26 @@
 {
   "name": "operations-portal-frontend",
   "version": "10.0.0.1",
-  "description": "Operations and admin portal",
+  "description": "Operations Portal - Dedicated HR Operations Management",
   "type": "module",
   "scripts": {
     "dev": "vite --port 3028",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 3028"
   },
   "dependencies": {
+    "@heroicons/react": "^2.1.1",
+    "@tanstack/react-query": "^5.17.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.1",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.312.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.21.0",
+    "recharts": "^2.12.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
