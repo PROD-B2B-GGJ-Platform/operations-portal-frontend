@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   Target,
   TrendingUp,
@@ -15,28 +16,9 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { performanceAPI } from '../services/OperationsAPIService';
 
-const stats = [
-  { name: 'Active Goals', value: '342', change: '+12', icon: Target, color: 'from-violet-500 to-purple-500' },
-  { name: 'Avg Progress', value: '68%', change: '+5%', icon: TrendingUp, color: 'from-emerald-500 to-green-500' },
-  { name: 'Reviews Due', value: '28', change: '-3', icon: Clock, color: 'from-amber-500 to-orange-500' },
-  { name: 'Top Performers', value: '45', change: '+8', icon: Award, color: 'from-blue-500 to-cyan-500' },
-];
-
-const goalStatusData = [
-  { name: 'Completed', value: 124, color: '#10b981' },
-  { name: 'In Progress', value: 156, color: '#8b5cf6' },
-  { name: 'Not Started', value: 42, color: '#64748b' },
-  { name: 'Overdue', value: 20, color: '#ef4444' },
-];
-
-const departmentPerformance = [
-  { department: 'Engineering', score: 92, goals: 45 },
-  { department: 'Sales', score: 88, goals: 38 },
-  { department: 'Marketing', score: 85, goals: 28 },
-  { department: 'HR', score: 94, goals: 22 },
-  { department: 'Finance', score: 91, goals: 18 },
-];
+// Mock chart data removed - using real API data
 
 const goals = [
   {
@@ -101,6 +83,23 @@ const statusStyles = {
 export default function Performance() {
   const [filter, setFilter] = useState('all');
 
+  const { data: performanceStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['performanceStats'],
+    queryFn: () => performanceAPI.getStats().then(res => res.data),
+  });
+
+  const { data: goals, isLoading: goalsLoading } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => performanceAPI.getAllGoals().then(res => res.data),
+  });
+
+  const stats = [
+    { name: 'Active Goals', value: performanceStats?.activeGoals?.toString() || '0', change: '+12', icon: Target, color: 'from-violet-500 to-purple-500' },
+    { name: 'Avg Progress', value: performanceStats?.averageProgress ? `${performanceStats.averageProgress.toFixed(1)}%` : '0%', change: '+5%', icon: TrendingUp, color: 'from-emerald-500 to-green-500' },
+    { name: 'Completed Goals', value: performanceStats?.completedGoals?.toString() || '0', change: '-3', icon: CheckCircle, color: 'from-amber-500 to-orange-500' },
+    { name: 'Total Goals', value: goals?.length?.toString() || '0', change: '+8', icon: Award, color: 'from-blue-500 to-cyan-500' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -148,63 +147,7 @@ export default function Performance() {
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Goal Status Distribution */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Goal Status Distribution</h3>
-          <div className="flex items-center gap-8">
-            <ResponsiveContainer width="50%" height={200}>
-              <PieChart>
-                <Pie
-                  data={goalStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {goalStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-3">
-              {goalStatusData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-sm text-slate-300">{item.name}</span>
-                  </div>
-                  <span className="text-sm font-medium text-white">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Department Performance */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Department Performance</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={departmentPerformance} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis type="number" domain={[0, 100]} stroke="#64748b" />
-              <YAxis dataKey="department" type="category" stroke="#64748b" width={80} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                }}
-              />
-              <Bar dataKey="score" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="Score" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {/* Charts removed - will add real data charts later */}
 
       {/* Goals Table */}
       <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl overflow-hidden">
@@ -242,56 +185,79 @@ export default function Performance() {
               </tr>
             </thead>
             <tbody>
-              {goals.map((goal) => {
-                const status = statusStyles[goal.status as keyof typeof statusStyles];
-                return (
-                  <tr key={goal.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-white font-medium">{goal.title}</p>
-                        <p className="text-sm text-slate-500 mt-0.5 capitalize">{goal.type} Goal</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-white">{goal.employee}</p>
-                        <p className="text-sm text-slate-500">{goal.department}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-32">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-white">{goal.progress}%</span>
-                        </div>
-                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={clsx(
-                        'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium capitalize',
-                        status.bg,
-                        status.text
-                      )}>
-                        <status.icon size={12} />
-                        {goal.status.replace('-', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-300">{goal.dueDate}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
-                        <MoreVertical size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {goalsLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    Loading goals...
+                  </td>
+                </tr>
+              ) : !goals || goals.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    No goals found
+                  </td>
+                </tr>
+              ) : (
+                goals
+                  .filter((goal: any) => filter === 'all' || goal.goalType?.toLowerCase().includes(filter))
+                  .map((goal: any) => {
+                    const statusMap: any = {
+                      'ACTIVE': 'on-track',
+                      'COMPLETED': 'completed',
+                      'CANCELLED': 'overdue',
+                      'ON_HOLD': 'at-risk'
+                    };
+                    const mappedStatus = statusMap[goal.status] || 'on-track';
+                    const status = statusStyles[mappedStatus as keyof typeof statusStyles];
+                    return (
+                      <tr key={goal.goalId} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-white font-medium">{goal.goalName}</p>
+                            <p className="text-sm text-slate-500 mt-0.5 capitalize">{goal.goalType} Goal</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-white">{goal.employeeName || `Employee ${goal.employeeId}`}</p>
+                            <p className="text-sm text-slate-500">{goal.position || goal.category}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="w-32">
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="text-white">{goal.progressPercentage || 0}%</span>
+                            </div>
+                            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                                style={{ width: `${goal.progressPercentage || 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={clsx(
+                            'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium capitalize',
+                            status.bg,
+                            status.text
+                          )}>
+                            <status.icon size={12} />
+                            {goal.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-slate-300">{goal.dueDate}</span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
+                            <MoreVertical size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+              )}
             </tbody>
           </table>
         </div>

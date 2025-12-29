@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   DollarSign,
   TrendingUp,
@@ -16,93 +17,9 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { compensationAPI } from '../services/OperationsAPIService';
 
-const stats = [
-  { name: 'Total Payroll', value: '$12.4M', change: '+8.5%', trend: 'up', icon: DollarSign, color: 'from-emerald-500 to-green-500' },
-  { name: 'Avg Salary', value: '$85,400', change: '+5.2%', trend: 'up', icon: TrendingUp, color: 'from-violet-500 to-purple-500' },
-  { name: 'Pending Reviews', value: '24', change: '-3', trend: 'down', icon: Clock, color: 'from-amber-500 to-orange-500' },
-  { name: 'Budget Utilized', value: '78%', change: '+12%', trend: 'up', icon: PieChartIcon, color: 'from-blue-500 to-cyan-500' },
-];
-
-const salaryTrendData = [
-  { month: 'Jan', avg: 82000, median: 78000 },
-  { month: 'Feb', avg: 82500, median: 78500 },
-  { month: 'Mar', avg: 83000, median: 79000 },
-  { month: 'Apr', avg: 83500, median: 79500 },
-  { month: 'May', avg: 84000, median: 80000 },
-  { month: 'Jun', avg: 85400, median: 81000 },
-];
-
-const departmentBudget = [
-  { department: 'Engineering', budget: 4200000, utilized: 3800000 },
-  { department: 'Sales', budget: 2800000, utilized: 2600000 },
-  { department: 'Marketing', budget: 1500000, utilized: 1350000 },
-  { department: 'HR', budget: 800000, utilized: 720000 },
-  { department: 'Finance', budget: 950000, utilized: 880000 },
-];
-
-const adjustments = [
-  {
-    id: '1',
-    employee: 'Sarah Johnson',
-    role: 'Senior Developer',
-    department: 'Engineering',
-    currentSalary: 120000,
-    proposedSalary: 132000,
-    change: 10,
-    effectiveDate: 'Feb 1, 2025',
-    status: 'pending',
-    reason: 'Annual Review',
-  },
-  {
-    id: '2',
-    employee: 'Mike Chen',
-    role: 'Product Manager',
-    department: 'Product',
-    currentSalary: 135000,
-    proposedSalary: 148000,
-    change: 9.6,
-    effectiveDate: 'Feb 1, 2025',
-    status: 'approved',
-    reason: 'Promotion',
-  },
-  {
-    id: '3',
-    employee: 'Emily Davis',
-    role: 'UX Designer',
-    department: 'Design',
-    currentSalary: 95000,
-    proposedSalary: 105000,
-    change: 10.5,
-    effectiveDate: 'Jan 15, 2025',
-    status: 'approved',
-    reason: 'Market Adjustment',
-  },
-  {
-    id: '4',
-    employee: 'John Smith',
-    role: 'Sales Manager',
-    department: 'Sales',
-    currentSalary: 110000,
-    proposedSalary: 118000,
-    change: 7.3,
-    effectiveDate: 'Feb 1, 2025',
-    status: 'pending',
-    reason: 'Performance Bonus',
-  },
-  {
-    id: '5',
-    employee: 'Lisa Wang',
-    role: 'Data Analyst',
-    department: 'Analytics',
-    currentSalary: 85000,
-    proposedSalary: 92000,
-    change: 8.2,
-    effectiveDate: 'Feb 1, 2025',
-    status: 'rejected',
-    reason: 'Budget Constraints',
-  },
-];
+// Mock data removed - using real API data
 
 const statusStyles = {
   pending: { bg: 'bg-amber-500/10', text: 'text-amber-400', icon: Clock },
@@ -112,6 +29,23 @@ const statusStyles = {
 
 export default function Compensation() {
   const [filter, setFilter] = useState('all');
+
+  const { data: compensationStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['compensationStats'],
+    queryFn: () => compensationAPI.getStats().then(res => res.data),
+  });
+
+  const { data: compensations, isLoading: compensationsLoading } = useQuery({
+    queryKey: ['compensations'],
+    queryFn: () => compensationAPI.getAll().then(res => res.data),
+  });
+
+  const stats = [
+    { name: 'Total Payroll', value: compensationStats?.totalPayroll || '$0', change: compensationStats?.totalPayrollChange || '+0%', trend: 'up', icon: DollarSign, color: 'from-emerald-500 to-green-500' },
+    { name: 'Avg Salary', value: compensationStats?.averageSalary || '$0', change: compensationStats?.averageSalaryChange || '+0%', trend: 'up', icon: TrendingUp, color: 'from-violet-500 to-purple-500' },
+    { name: 'Pending Reviews', value: compensationStats?.pendingReviews || '0', change: compensationStats?.pendingReviewsChange || '0', trend: 'down', icon: Clock, color: 'from-amber-500 to-orange-500' },
+    { name: 'Budget Utilized', value: compensationStats?.budgetUtilized || '0%', change: compensationStats?.budgetUtilizedChange || '+0%', trend: 'up', icon: PieChartIcon, color: 'from-blue-500 to-cyan-500' },
+  ];
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -181,49 +115,7 @@ export default function Compensation() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Salary Trends */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Salary Trends</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={salaryTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" tickFormatter={(v) => `$${v / 1000}k`} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Line type="monotone" dataKey="avg" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Average" />
-              <Line type="monotone" dataKey="median" stroke="#06b6d4" strokeWidth={2} dot={false} name="Median" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Department Budget */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Department Budget Utilization</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={departmentBudget} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis type="number" stroke="#64748b" tickFormatter={(v) => `$${v / 1000000}M`} />
-              <YAxis dataKey="department" type="category" stroke="#64748b" width={80} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Bar dataKey="budget" fill="#334155" radius={[0, 4, 4, 0]} name="Budget" />
-              <Bar dataKey="utilized" fill="#10b981" radius={[0, 4, 4, 0]} name="Utilized" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Charts removed - will add real data charts later */}
       </div>
 
       {/* Adjustments Table */}
@@ -263,42 +155,53 @@ export default function Compensation() {
               </tr>
             </thead>
             <tbody>
-              {adjustments
-                .filter((a) => filter === 'all' || a.status === filter)
-                .map((adjustment) => {
-                  const status = statusStyles[adjustment.status as keyof typeof statusStyles];
-                  return (
-                    <tr key={adjustment.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+              {compensationsLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    Loading compensations...
+                  </td>
+                </tr>
+              ) : !compensations || compensations.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    No compensation data found
+                  </td>
+                </tr>
+              ) : (
+                compensations
+                  .filter((c: any) => filter === 'all' || c.status?.toLowerCase() === filter)
+                  .slice(0, 10)
+                  .map((comp: any) => (
+                    <tr key={comp.compensationId} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-4">
                         <div>
-                          <p className="text-white font-medium">{adjustment.employee}</p>
-                          <p className="text-sm text-slate-500">{adjustment.role} · {adjustment.department}</p>
+                          <p className="text-white font-medium">{comp.employeeName || `Employee ${comp.employeeId}`}</p>
+                          <p className="text-sm text-slate-500">{comp.position || 'N/A'} · {comp.employeeEmail || 'N/A'}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-slate-300">{formatCurrency(adjustment.currentSalary)}</span>
+                        <span className="text-slate-300">${parseInt(comp.baseSalary || '0').toLocaleString()}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-white font-medium">{formatCurrency(adjustment.proposedSalary)}</span>
+                        <span className="text-white font-medium">${parseInt(comp.baseSalary || '0').toLocaleString()}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-emerald-400 flex items-center gap-1">
                           <ArrowUpRight size={14} />
-                          +{adjustment.change}%
+                          Bonus: ${parseInt(comp.bonus || '0').toLocaleString()}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={clsx(
                           'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium capitalize',
-                          status.bg,
-                          status.text
+                          comp.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
                         )}>
-                          <status.icon size={12} />
-                          {adjustment.status}
+                          {comp.status === 'ACTIVE' ? <CheckCircle size={12} /> : <Clock size={12} />}
+                          {comp.status}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-slate-300">{adjustment.effectiveDate}</span>
+                        <span className="text-slate-300">{comp.effectiveDate || 'N/A'}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
@@ -306,8 +209,8 @@ export default function Compensation() {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+              )}
             </tbody>
           </table>
         </div>
